@@ -2,8 +2,8 @@
 ################################################################################
 # Zsh History Hook v1.0
 #
-# Advanced zsh command history logging with full context capture.
-# Captures: timestamp, PID, PPID, CWD, command, cmd_id, exit_code
+# Simple command history logging with timestamp and working directory.
+# Captures: timestamp, CWD, command
 #
 # No sudo required - installs to ~/.config/zsh-history/
 #
@@ -20,8 +20,8 @@
 #   source ~/.config/zsh-history/zsh_history_hook.sh
 #   zsh_history_init
 #
-# Commands: hc, ha, hf, hpid, hdir, herr, htop, hstats, henable, hdisable
-# Log: ~/.zsh_history.log (pipe-delimited format with full context)
+# Commands: ha, hf, hdir, htop, htimeline, henable, hdisable
+# Log: ~/.better-zsh-history.log (pipe-delimited format)
 #
 ################################################################################
 
@@ -46,7 +46,7 @@ create_hook() {
 # Installed to ~/.config/zsh-history/zsh_history_hook.sh
 
 # Configuration
-ZSH_HISTORY_LOG="${ZSH_HISTORY_LOG:-$HOME/.zsh_history.log}"
+ZSH_HISTORY_LOG="${ZSH_HISTORY_LOG:-$HOME/.better-zsh-history.log}"
 ZSH_HISTORY_ENABLED="${ZSH_HISTORY_ENABLED:-1}"
 ZSH_HISTORY_CONFIG="$HOME/.config/zsh-history/config"
 ZSH_HISTORY_SESSION_ID="${ZSH_HISTORY_SESSION_ID:-$(date +%s%N | md5sum | cut -c1-8)}"
@@ -72,12 +72,8 @@ _zsh_history_next_id() {
 zsh_history_log_command() {
     [[ "$ZSH_HISTORY_ENABLED" != "1" ]] && return
 
-    local timestamp=$(date +"%Y-%m-%d %H:%M:%S.%3N")
-    local cmd_id=$(_zsh_history_next_id)
-    local pid=$$
-    local ppid=$PPID
+    local timestamp=$(date +"%Y-%m-%d %H:%M:%S")
     local cwd="$PWD"
-    local exit_code=$1
     local cmd="$2"
 
     [[ -z "$cmd" ]] && return
@@ -86,17 +82,10 @@ zsh_history_log_command() {
     cmd=$(printf '%s\n' "$cmd" | sed 's/|/\\|/g' | tr '\n' ' ')
 
     local log_file="$ZSH_HISTORY_LOG"
-    local lock_file="${log_file}.lock"
 
-    {
-        # Try to get exclusive lock with timeout
-        flock -x -w 1 9 2>/dev/null || return
-
-        printf "%s | %d | %d | %s | %s | %d | exit:%d\n" \
-            "$timestamp" "$pid" "$ppid" "$cwd" "$cmd" "$cmd_id" "$exit_code" \
-            >> "$log_file"
-
-    } 9>"$lock_file" 2>/dev/null
+    printf "%s | %s | %s\n" \
+        "$timestamp" "$cwd" "$cmd" \
+        >> "$log_file"
 }
 
 # Capture command before execution
@@ -234,23 +223,15 @@ hclear() {
 hformat() {
     cat << 'EOF'
 Log Format (pipe-delimited):
-  timestamp | PID | PPID | CWD | command | session_id | duration_ms | TTY | shell_level | cmd_id | exit_code
+  timestamp | cwd | command
 
 Example:
-  2026-01-28 13:45:22.123 | 1234 | 1233 | /home/user | ls -la | a1b2c3d4 | 45ms | pts/0 | 2 | 1 | exit:0
+  2026-01-28 13:45:22 | /home/user | ls -la
 
 Field Reference:
-  timestamp     - Date and time with milliseconds
-  PID           - Process ID (current shell)
-  PPID          - Parent Process ID
-  CWD           - Current working directory
+  timestamp     - Date and time
+  cwd           - Current working directory
   command       - The command executed
-  session_id    - Unique session identifier
-  duration_ms   - Time to execute command (milliseconds)
-  TTY           - Terminal device
-  shell_level   - Nesting level (SHLVL)
-  cmd_id        - Sequential command ID
-  exit_code     - Return code (0 = success)
 EOF
 }
 
@@ -259,15 +240,11 @@ hhelp() {
 Zsh History Hook - Available Commands
 
 Query Commands:
-  hc [N]        - Show this shell's last N commands (default 20)
-  ha [N]        - Show all shells' last N commands (default 30)
+  ha [N]        - Show last N commands (default 30)
   hf PATTERN    - Find commands matching PATTERN
-  hpid PID      - Show commands from specific PID
   hdir [DIR]    - Show commands in directory (default current)
-  herr [N]      - Show last N failed commands (default 20)
   htop [N]      - Show top N most used commands (default 10)
   htimeline     - Visual timeline of commands by hour
-  hstats        - Show summary statistics
   hstatus       - Show current status
   hformat       - Show log format documentation
   hhelp         - Show this help
@@ -278,12 +255,11 @@ Management Commands:
   hclear        - Clear history log (prompts for confirmation)
 
 Examples:
-  hc              - Last 20 commands in this shell
-  ha 50           - Last 50 commands across all shells
+  ha              - Last 30 commands
+  ha 50           - Last 50 commands
   hf "git"        - Find all git-related commands
-  herr            - Failed commands
+  hdir /tmp       - Commands run in /tmp directory
   htop 15         - Top 15 commands by frequency
-  hstats          - Full statistics
 EOF
 }
 
@@ -299,7 +275,7 @@ install() {
     create_hook
     log_ok "Installed to ~/.config/zsh-history/"
 
-    log_info "Log location: ~/.zsh_history.log"
+    log_info "Log location: ~/.better-zsh-history.log"
     log_info "Config location: ~/.config/zsh-history/"
 
     echo ""
@@ -332,10 +308,10 @@ uninstall() {
 
     rm -rf ~/.config/zsh-history
     log_ok "Uninstalled from ~/.config/zsh-history"
-    log_warn "Log file remains at ~/.zsh_history.log"
+    log_warn "Log file remains at ~/.better-zsh-history.log"
     echo ""
     echo "To fully uninstall, also run:"
-    echo "  rm ~/.zsh_history.log"
+    echo "  rm ~/.better-zsh-history.log"
     echo ""
     echo "And remove these lines from ~/.zshrc:"
     echo "  source ~/.config/zsh-history/zsh_history_hook.sh"
@@ -350,9 +326,9 @@ status() {
         log_err "Not installed"
     fi
 
-    if [[ -f ~/.zsh_history.log ]]; then
-        local count=$(wc -l < ~/.zsh_history.log)
-        log_info "Log: ~/.zsh_history.log ($count entries)"
+    if [[ -f ~/.better-zsh-history.log ]]; then
+        local count=$(wc -l < ~/.better-zsh-history.log)
+        log_info "Log: ~/.better-zsh-history.log ($count entries)"
     else
         log_warn "Log not created yet"
     fi
@@ -380,18 +356,25 @@ disable() {
 # Show info
 show_info() {
     echo ""
-    log_info "Zsh History Hook - Advanced Shell Logging"
+    log_info "Zsh History Hook - Command History Logging"
     echo ""
     echo "Features:"
-    echo "  • Full command context (PID, PPID, CWD, TTY, shell level)"
-    echo "  • Command duration tracking (in milliseconds)"
-    echo "  • Session ID for multi-shell correlation"
-    echo "  • Exit code and error detection"
-    echo "  • Sequential command ID"
-    echo "  • File-locked concurrent writes"
+    echo "  • Timestamp for every command"
+    echo "  • Working directory context"
+    echo "  • Full command text"
+    echo "  • Simple pipe-delimited format"
     echo "  • No sudo required - user-space installation"
     echo "  • Enable/disable without reinstalling"
     echo ""
+}
+
+# Clean function
+clean() {
+    read -q "?Remove ~/.better-zsh-history.log? (y/n) "
+    [[ "$REPLY" == "y" ]] || return
+
+    rm -f ~/.better-zsh-history.log
+    log_ok "Removed ~/.better-zsh-history.log"
 }
 
 # Main
@@ -412,6 +395,9 @@ case "${1:-install}" in
     disable)
         disable
         ;;
+    clean)
+        clean
+        ;;
     *)
         echo "Zsh History Hook v1.0"
         echo ""
@@ -423,6 +409,7 @@ case "${1:-install}" in
         echo "  status      - Check installation status"
         echo "  enable      - Enable logging"
         echo "  disable     - Disable logging"
+        echo "  clean       - Remove history log file"
         echo ""
         ;;
 esac

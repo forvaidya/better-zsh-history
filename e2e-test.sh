@@ -29,7 +29,7 @@ echo "✓ Test commands logged"
 echo ""
 
 # Verify log file
-if [ ! -f ~/.zsh_history.log ]; then
+if [ ! -f ~/.better-zsh-history.log ]; then
     echo "❌ FAILED: History log not created"
     exit 1
 fi
@@ -40,33 +40,23 @@ echo ""
 # Display log contents
 echo "Log File Contents:"
 echo "───────────────────────────────────────────────────────────"
-cat ~/.zsh_history.log
+cat ~/.better-zsh-history.log
 echo "───────────────────────────────────────────────────────────"
 echo ""
 
 # Calculate statistics
-TOTAL=$(wc -l < ~/.zsh_history.log)
-SUCCESS=$(grep "exit:0$" ~/.zsh_history.log | wc -l)
-FAILED=$((TOTAL - SUCCESS))
-SUCCESS_RATE=$((SUCCESS * 100 / TOTAL))
+TOTAL=$(wc -l < ~/.better-zsh-history.log)
 
 # Display results
 echo "Test Results:"
 echo "  Total Commands:  $TOTAL"
-echo "  Successful:      $SUCCESS"
-echo "  Failed:          $FAILED"
-echo "  Success Rate:    ${SUCCESS_RATE}%"
 echo ""
 
 # Display field format
-echo "Log Format (7 fields, pipe-delimited):"
-echo "  1. Timestamp     → $(echo "$(head -1 ~/.zsh_history.log)" | awk -F'|' '{print $1}' | xargs)"
-echo "  2. PID           → $(echo "$(head -1 ~/.zsh_history.log)" | awk -F'|' '{print $2}' | xargs)"
-echo "  3. PPID          → $(echo "$(head -1 ~/.zsh_history.log)" | awk -F'|' '{print $3}' | xargs)"
-echo "  4. CWD           → $(echo "$(head -1 ~/.zsh_history.log)" | awk -F'|' '{print $4}' | xargs)"
-echo "  5. Command       → $(echo "$(head -1 ~/.zsh_history.log)" | awk -F'|' '{print $5}' | xargs)"
-echo "  6. Command ID    → $(echo "$(head -1 ~/.zsh_history.log)" | awk -F'|' '{print $6}' | xargs)"
-echo "  7. Exit Code     → $(echo "$(head -1 ~/.zsh_history.log)" | awk -F'|' '{print $7}' | xargs)"
+echo "Log Format (3 fields, pipe-delimited):"
+echo "  1. Timestamp     → $(echo "$(head -1 ~/.better-zsh-history.log)" | awk -F'|' '{print $1}' | xargs)"
+echo "  2. CWD           → $(echo "$(head -1 ~/.better-zsh-history.log)" | awk -F'|' '{print $2}' | xargs)"
+echo "  3. Command       → $(echo "$(head -1 ~/.better-zsh-history.log)" | awk -F'|' '{print $3}' | xargs)"
 echo ""
 
 echo "════════════════════════════════════════════════════════════════"

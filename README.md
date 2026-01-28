@@ -1,6 +1,6 @@
-# Zsh History Hook - Advanced Command Logging
+# Zsh History Hook - Simple Command History
 
-A lightweight, no-sudo-required zsh command history logging system with full context capture.
+A lightweight, no-sudo-required zsh command history logging system that captures timestamp, working directory, and commands.
 
 ## Project Structure
 
@@ -52,37 +52,31 @@ docker rm -f "$CONTAINER"
 #### Option B: Local Test
 ```bash
 # Run test commands in your shell
-hstats
 ha
-hc
-herr
+hf "git"
+hdir
 ```
 
 ## Features
 
 - **No sudo required** - Installs to `~/.config/zsh-history/` (user space)
 - **Minimal overhead** - +0.3-0.5ms per command (negligible)
-- **Essential context** - Timestamp, PID, PPID, CWD, command, exit code
-- **Sequential tracking** - Command IDs for ordering
-- **File locking** - Safe concurrent writes from multiple shells
+- **Simple format** - Timestamp, working directory, and command only
+- **Easy searching** - Find commands by pattern or directory
 - **Enable/disable** - Toggle logging without reinstalling
-- **12 query commands** - Easy history searching and analysis
+- **Query helpers** - Built-in commands for history exploration
 
 ## Log Format
 
-7 pipe-delimited fields:
+3 pipe-delimited fields:
 ```
-timestamp | PID | PPID | CWD | command | cmd_id | exit_code
-2026-01-28 09:30:14.992 | 263 | 0 | / | ls -la /root | 1 | exit:0
+timestamp | cwd | command
+2026-01-28 09:30:14 | /root | ls -la /root
 ```
 
-- **timestamp** - ISO 8601 with milliseconds
-- **PID** - Process ID of the shell
-- **PPID** - Parent process ID
-- **CWD** - Current working directory
+- **timestamp** - Date and time (YYYY-MM-DD HH:MM:SS)
+- **cwd** - Current working directory where command ran
 - **command** - Full command executed
-- **cmd_id** - Sequential command number
-- **exit_code** - 0 for success, non-zero for failure
 
 ## Available Commands
 
@@ -90,18 +84,14 @@ timestamp | PID | PPID | CWD | command | cmd_id | exit_code
 
 | Command | Purpose |
 |---------|---------|
-| `hc [N]` | Show last N commands in this shell (default 20) |
-| `ha [N]` | Show last N commands from all shells (default 30) |
+| `ha [N]` | Show last N commands (default 30) |
 | `hf PATTERN` | Find commands matching pattern |
-| `hpid PID` | Show commands from specific PID |
 | `hdir [DIR]` | Show commands in directory (default current) |
-| `herr [N]` | Show last N failed commands (default 20) |
 | `htop [N]` | Show top N most used commands (default 10) |
 | `htimeline` | Visual timeline of commands by hour |
-| `hstats` | Show summary statistics |
 | `hstatus` | Show current logging status |
 | `hformat` | Show log format documentation |
-| `hhelp` | Show full help |
+| `hhelp` | Show command reference |
 
 ### Management Commands
 
@@ -110,40 +100,36 @@ timestamp | PID | PPID | CWD | command | cmd_id | exit_code
 | `henable` | Enable logging |
 | `hdisable` | Disable logging |
 | `hclear` | Clear history log (with confirmation) |
+| `hclean` | Remove history log file |
 
 ## Examples
 
-### View statistics
+### View recent commands
 ```bash
-hstats
-# Total:      1523 commands
-# Success:    1489 (97.8%)
-# Failed:     34
-# Log file:   /root/.zsh_history.log
-```
-
-### Find failed commands
-```bash
-herr
-# 2026-01-28 09:30:15.004 | 263 | 0 | / | invalid-cmd | 7 | exit:127
-# 2026-01-28 09:30:16.002 | 263 | 0 | / | go build | 15 | exit:1
+ha
+# 2026-01-28 09:30:14 | /root | ls -la /root
+# 2026-01-28 09:30:15 | /root | pwd
+# 2026-01-28 09:30:16 | /home/user | git status
 ```
 
 ### Find commands by pattern
 ```bash
 hf "git"
-# Shows all git-related commands
+# 2026-01-28 10:05:20 | /project | git status
+# 2026-01-28 10:05:25 | /project | git add .
+# 2026-01-28 10:05:30 | /project | git commit -m "fix bug"
 ```
 
-### View commands from specific shell
+### View commands from directory
 ```bash
-hc 10
-# Last 10 commands in current shell only
+hdir /tmp
+# 2026-01-28 08:15:00 | /tmp | tar xzf archive.tar.gz
+# 2026-01-28 08:15:05 | /tmp | ls -la
 ```
 
 ### See most used commands
 ```bash
-htop 15
+htop 10
 # 42 ls
 # 35 cd
 # 28 git
@@ -161,7 +147,7 @@ No sudo required. Files created in `~/.config/zsh-history/`:
 ### Log File
 
 Created automatically in:
-- `~/.zsh_history.log` - Command history (permissions: 644)
+- `~/.better-zsh-history.log` - Command history (permissions: 644)
 
 ### Uninstall
 
@@ -173,7 +159,13 @@ zsh zsh-history-hook.sh uninstall
 Remove with logs:
 ```bash
 zsh zsh-history-hook.sh uninstall
-rm ~/.zsh_history.log
+zsh zsh-history-hook.sh clean
+```
+
+Or manually:
+```bash
+zsh zsh-history-hook.sh uninstall
+rm ~/.better-zsh-history.log
 ```
 
 And remove from `~/.zshrc`:
@@ -204,19 +196,10 @@ precmd() {
 ```
 
 The `zsh_history_log_command()` function:
-1. Captures current timestamp with milliseconds
-2. Gets process context (PID, PPID, CWD)
-3. Generates sequential command ID
-4. Formats and writes log entry with file locking
-5. Persists to `~/.zsh_history.log`
-
-## Concurrency & File Locking
-
-Uses `flock` for atomic writes:
-- Multiple shells can write simultaneously
-- No lost entries
-- No file corruption
-- < 1ms wait per write
+1. Captures current timestamp
+2. Gets working directory context
+3. Formats and writes log entry
+4. Persists to `~/.better-zsh-history.log`
 
 ## Performance Impact
 
@@ -246,14 +229,12 @@ Expected output:
 ✅ History log created
 Log File Contents:
 ───────────────────────────────────────────────────────────
-2026-01-28 09:30:14.992 | 263 | 0 | / | ls -la /root | 1 | exit:0
+2026-01-28 09:30:14 | / | ls -la /root
+2026-01-28 09:30:15 | / | pwd
 ...
 ───────────────────────────────────────────────────────────
 Test Results:
   Total Commands:  8
-  Successful:      8
-  Failed:          0
-  Success Rate:    100%
 ✅ End-to-End Test PASSED
 ```
 
@@ -264,10 +245,9 @@ After installation, verify with:
 ls
 pwd
 date
-hstats       # Should show commands
-ha           # All commands
-herr         # Failed commands (should be empty)
-cat ~/.zsh_history.log  # View raw log
+ha           # Show recent commands
+hf "pwd"     # Find specific command
+cat ~/.better-zsh-history.log  # View raw log
 ```
 
 ## Troubleshooting
@@ -287,7 +267,7 @@ exec zsh
 
 # Verify:
 ls  # Run a command
-cat ~/.zsh_history.log  # Check log
+cat ~/.better-zsh-history.log  # Check log
 ```
 
 ### Commands not appearing
@@ -318,10 +298,10 @@ hstatus   # Verify status
 
 ## Use Cases
 
-1. **Debugging** - See exact command sequence and exit codes when something fails
-2. **Auditing** - Full forensic history with timestamps and PIDs
+1. **Debugging** - See exact command sequence when troubleshooting
+2. **Auditing** - Full command history with timestamps and directories
 3. **Learning** - Understand what commands work and in what order
-4. **Multi-shell tracking** - See which shell ran which command (via PID)
+4. **Directory tracking** - See which commands ran in which directories
 5. **Development** - Track build/test/deploy command sequences
 6. **Analysis** - Find your most-used commands with `htop`
 
@@ -343,5 +323,5 @@ Open source - Use freely
 - **No sudo required** - User-space installation
 - **Minimal dependencies** - Uses only standard POSIX utilities
 - **Per-user logging** - Each user has their own log file
-- **File locking** - Safe for concurrent multi-shell writes
 - **Privacy** - Log files are user-readable only (644 permissions)
+- **Portable** - Works on macOS and Linux

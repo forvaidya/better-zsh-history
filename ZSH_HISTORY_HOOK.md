@@ -1,15 +1,15 @@
-# Zsh History Hook - Advanced Command Logging
+# Zsh History Hook - Simple Command Logging
 
-A lightweight, no-sudo-required zsh history logging system with full context capture.
+A lightweight, no-sudo-required zsh history logging system that captures commands with timestamps and working directories.
 
 ## Key Features
 
 ✅ **No sudo required** - Installs to `~/.config/zsh-history/`
 ✅ **Enable/Disable** - Turn logging on/off without reinstalling
-✅ **Essential context** - Timestamp, PID, PPID, CWD, exit code
-✅ **Sequential IDs** - Track command order for reference
-✅ **Concurrent safe** - File-locked writes for multi-shell environments
-✅ **Query helpers** - 12 built-in commands for history exploration
+✅ **Simple format** - Timestamp, working directory, and command only
+✅ **Easy searching** - Find commands by pattern or directory
+✅ **Portable** - Works on macOS and Linux
+✅ **Query helpers** - Built-in commands for history exploration
 
 ## Installation
 
@@ -33,7 +33,7 @@ Log files created:
 - `~/.config/zsh-history/zsh_history_hook.sh` - Core hook functions
 - `~/.config/zsh-history/config` - Enable/disable state
 - `~/.config/zsh-history/cmd_counter` - Sequential command counter
-- `~/.zsh_history.log` - Command history log
+- `~/.better-zsh-history.log` - Command history log
 
 Reload shell:
 ```bash
@@ -43,12 +43,12 @@ exec zsh
 ## Log Format
 
 ```
-timestamp | PID | PPID | CWD | command | cmd_id | exit_code
+timestamp | cwd | command
 ```
 
 Example:
 ```
-2026-01-28 13:45:22.123 | 1234 | 1233 | /root | ls -la | 1 | exit:0
+2026-01-28 13:45:22 | /root | ls -la
 ```
 
 ## Available Commands
@@ -57,15 +57,11 @@ Example:
 
 | Command | Purpose |
 |---------|---------|
-| `hc [N]` | Last N commands in current shell (default 20) |
-| `ha [N]` | Last N commands across all shells (default 30) |
+| `ha [N]` | Last N commands (default 30) |
 | `hf PATTERN` | Find commands matching pattern |
-| `hpid PID` | Commands from specific PID |
 | `hdir [DIR]` | Commands in directory (default current) |
-| `herr [N]` | Last N failed commands (default 20) |
 | `htop [N]` | Top N most used commands (default 10) |
 | `htimeline` | Visual timeline by hour |
-| `hstats` | Summary statistics |
 | `hstatus` | Current status |
 | `hformat` | Log format documentation |
 | `hhelp` | Command reference |
@@ -77,19 +73,24 @@ Example:
 | `henable` | Enable logging |
 | `hdisable` | Disable logging |
 | `hclear` | Clear history log |
+| `hclean` | Remove history log file |
 
 ## Examples
 
-### See what failed
+### View recent commands
 ```bash
-herr
-# 2026-01-28 13:45:22.123 | 1234 | 1233 | /root | go build | a1b2c3d4 | 120ms | pts/0 | 2 | 5 | exit:1
+ha
+# 2026-01-28 13:45:22 | /root | ls -la
+# 2026-01-28 13:45:23 | /root | pwd
+# 2026-01-28 13:45:24 | /home/user | git status
 ```
 
-### View current shell's history
+### Find commands by pattern
 ```bash
-hc 10
-# Last 10 commands in this shell only
+hf "git"
+# 2026-01-28 13:45:24 | /home/user | git status
+# 2026-01-28 13:45:25 | /home/user | git add .
+# 2026-01-28 13:45:30 | /home/user | git commit
 ```
 
 ### Timeline of activity
@@ -101,32 +102,22 @@ htimeline
 # 18:00 ████ 18
 ```
 
-### Statistics
+### Most used commands
 ```bash
-hstats
-# Total:      1523 commands
-# Success:    1489 (97.8%)
-# Failed:     34
-# Avg Time:   23ms
-# Log file:   /root/.zsh_history.log
+htop 10
+# 42 ls
+# 35 cd
+# 28 git
 ```
 
 ## Captured Information
 
 ### Timing
-- **Timestamp** - ISO format with milliseconds (YYYY-MM-DD HH:MM:SS.mmm)
-
-### Process Context
-- **PID** - Process ID of the shell
-- **PPID** - Parent process ID
+- **Timestamp** - Date and time (YYYY-MM-DD HH:MM:SS)
 
 ### Execution Context
 - **CWD** - Current working directory where command ran
 - **Command** - The actual command executed
-- **Exit Code** - Return code (0 = success, non-0 = failure)
-
-### Command Tracking
-- **Command ID** - Sequential number for ordering commands
 
 ## Enable/Disable
 
@@ -159,19 +150,19 @@ hclear
 
 ## Advanced Usage
 
-### Failed commands in directory
+### Commands from specific directory
 ```bash
-herr | grep "/home/user"
+hdir /home/user
 ```
 
-### Command frequency over time
+### Count commands by date
 ```bash
-awk -F'|' '{print substr($1, 1, 10)}' ~/.zsh_history.log | sort | uniq -c
+awk -F'|' '{print substr($1, 1, 10)}' ~/.better-zsh-history.log | sort | uniq -c
 ```
 
 ### Monitor in real-time
 ```bash
-tail -f ~/.zsh_history.log
+tail -f ~/.better-zsh-history.log
 ```
 
 ## How It Works
@@ -217,30 +208,24 @@ exec zsh
 ls
 
 # Check
-cat ~/.zsh_history.log
+cat ~/.better-zsh-history.log
 ```
 
 ### Permission errors
 ```bash
 # Check permissions
-ls -la ~/.zsh_history.log
+ls -la ~/.better-zsh-history.log
 ls -la ~/.config/zsh-history/
 
 # Should be writable by user
 ```
 
-## Migration from Bash Hook
+## Cross-Platform Support
 
-If you have the bash history hook installed:
-
-```bash
-# Both can coexist! They use different log files:
-# Bash: ~/.bash_history.log
-# Zsh:  ~/.zsh_history.log
-
-# Or migrate to unified logging:
-# Modify the log path in zsh_history_hook.sh before installation
-```
+Works on both macOS and Linux:
+- **macOS**: Uses simple atomic append
+- **Linux**: Uses simple atomic append
+- No platform-specific dependencies
 
 ## Uninstallation
 
@@ -257,7 +242,7 @@ zsh zsh-history-hook.sh uninstall
 exec zsh
 
 # Optional: delete log file
-rm ~/.zsh_history.log
+rm ~/.better-zsh-history.log
 ```
 
 ## License
