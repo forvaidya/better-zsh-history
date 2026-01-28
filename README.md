@@ -8,6 +8,7 @@ A lightweight, no-sudo-required zsh command history logging system that captures
 .
 ├── zsh-history-hook.sh             # Installation and core functions
 ├── e2e-test.sh                     # End-to-end test script
+├── docker-test.sh                  # Docker container test runner
 ├── ZSH_HISTORY_HOOK.md             # Detailed documentation
 ├── bash-history-hook-final.sh      # Legacy bash version (reference)
 ├── README.md                        # This file
@@ -37,6 +38,12 @@ exec zsh
 ### Testing (1 minute)
 
 #### Option A: Docker Test (Recommended)
+```bash
+# Run e2e tests in Ubuntu Docker container
+bash docker-test.sh
+```
+
+Or manually:
 ```bash
 # Single command - creates container, runs test, cleans up
 CONTAINER="zsh-test-$(date +%s)" && \
