@@ -2,6 +2,52 @@
 
 A lightweight, no-sudo-required zsh command history logging system that captures timestamp, working directory, and commands.
 
+
+## Installation
+
+1. Clone the repository:
+```bash
+   git clone https://github.com/forvaidya/better-zsh-history.git
+   cd better-zsh-history
+```
+
+2. Run the initial setup:
+```bash
+   source ./zsh-history-hook.sh
+```
+
+3. Add these lines to your `~/.zshrc`:
+```bash
+   source ~/.config/zsh-history/zsh_history_hook.sh
+   zsh_history_init
+```
+
+4. Reload your shell:
+```bash
+   exec zsh
+```
+
+5. Verify installation:
+```bash
+   # Run a few commands
+   ls
+   pwd
+   
+   # Check the log
+   cat ~/.better-zsh-history.log
+   
+   # View statistics
+   hstats
+```
+
+## Usage
+
+After installation, the hook will automatically log all your commands. Use these helper commands:
+
+- `hstats` - Show history statistics
+- `ha` - Show formatted history with aliases
+
+
 ## Project Structure
 
 ```
